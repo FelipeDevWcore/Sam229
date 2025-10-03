@@ -373,30 +373,50 @@ const GerenciarVideos: React.FC = () => {
         formData.append('video', file);
 
         try {
-          const response = await fetch(`/api/videos/upload?folder_id=${selectedFolder}`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-            body: formData
+          // Criar XMLHttpRequest para monitorar progresso real
+          const xhr = new XMLHttpRequest();
+
+          // Atualizar progresso durante upload
+          xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+              const percentComplete = (e.loaded / e.total) * 100;
+              setUploadProgress(prev => prev.map(p =>
+                p.fileName === file.name ? { ...p, progress: percentComplete } : p
+              ));
+            }
           });
 
-          if (response.ok) {
-            setUploadProgress(prev => prev.map(p =>
-              p.fileName === file.name ? { ...p, progress: 100, status: 'completed' } : p
-            ));
-          } else {
-            const errorData = await response.json();
-            setUploadProgress(prev => prev.map(p =>
-              p.fileName === file.name ? { ...p, status: 'error', error: errorData.error } : p
-            ));
-          }
+          // Configurar resposta
+          const uploadPromise = new Promise((resolve, reject) => {
+            xhr.onload = () => {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                resolve(xhr.response);
+              } else {
+                reject(new Error(`Upload failed: ${xhr.statusText}`));
+              }
+            };
+            xhr.onerror = () => reject(new Error('Network error'));
+          });
+
+          xhr.open('POST', `/api/videos/upload?folder_id=${selectedFolder}`);
+          xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+          xhr.send(formData);
+
+          await uploadPromise;
+
+          setUploadProgress(prev => prev.map(p =>
+            p.fileName === file.name ? { ...p, progress: 100, status: 'completed' } : p
+          ));
+
         } catch (error) {
+          console.error('Erro no upload:', error);
           setUploadProgress(prev => prev.map(p =>
             p.fileName === file.name ? { ...p, status: 'error', error: 'Erro de conexão' } : p
           ));
         }
       }
 
-      const successCount = progressArray.filter(p => p.status === 'completed').length;
+      const successCount = uploadProgress.filter(p => p.status === 'completed').length;
       if (successCount > 0) {
         toast.success(`${successCount} vídeo(s) enviado(s) com sucesso!`);
         loadVideos();
@@ -736,29 +756,36 @@ const GerenciarVideos: React.FC = () => {
 
           {/* Progresso do Upload */}
           {uploadProgress.length > 0 && (
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-              <h3 className="font-medium text-gray-800 mb-3">Progresso do Upload</h3>
-              <div className="space-y-2">
+            <div className="mb-6 p-4 bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200 rounded-lg">
+              <h3 className="font-medium text-gray-800 mb-3 flex items-center">
+                <Upload className="h-4 w-4 mr-2 text-blue-600" />
+                Progresso do Upload
+              </h3>
+              <div className="space-y-3">
                 {uploadProgress.map((progress, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <span className="text-sm text-gray-700 truncate flex-1 mr-4">
-                      {progress.fileName}
-                    </span>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-32 bg-gray-200 rounded-full h-2">
-                        <div
-                          className={`h-2 rounded-full transition-all ${progress.status === 'completed' ? 'bg-green-600' :
-                            progress.status === 'error' ? 'bg-red-600' : 'bg-blue-600'
-                            }`}
-                          style={{ width: `${progress.progress}%` }}
-                        ></div>
-                      </div>
-                      <span className={`text-xs ${progress.status === 'completed' ? 'text-green-600' :
+                  <div key={index} className="bg-white rounded-lg p-3 shadow-sm">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700 truncate flex-1 mr-4">
+                        {progress.fileName}
+                      </span>
+                      <span className={`text-xs font-semibold ${progress.status === 'completed' ? 'text-green-600' :
                         progress.status === 'error' ? 'text-red-600' : 'text-blue-600'
                         }`}>
                         {progress.status === 'completed' ? 'Concluído' :
-                          progress.status === 'error' ? 'Erro' : 'Enviando...'}
+                          progress.status === 'error' ? 'Erro' : `${Math.round(progress.progress)}%`}
                       </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                      <div
+                        className={`h-3 rounded-full transition-all duration-300 ease-out relative ${progress.status === 'completed' ? 'bg-gradient-to-r from-green-500 to-green-600' :
+                          progress.status === 'error' ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-blue-500 to-blue-600'
+                          }`}
+                        style={{ width: `${Math.min(100, progress.progress)}%` }}
+                      >
+                        {progress.status === 'uploading' && (
+                          <div className="absolute inset-0 bg-white/30 animate-pulse"></div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}

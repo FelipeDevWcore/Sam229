@@ -63,16 +63,26 @@ export default function BaixarYoutube() {
   useEffect(() => {
     loadFolders();
     loadRecentDownloads();
-    
-    // Verificar status de download a cada 5 segundos se estiver baixando
-    const interval = setInterval(() => {
-      if (downloading) {
-        checkDownloadStatus();
-      }
-    }, 5000);
-
-    return () => clearInterval(interval);
   }, [getToken]);
+
+  // Intervalo separado para polling de status
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+
+    if (downloading) {
+      // Verificar imediatamente
+      checkDownloadStatus();
+
+      // Depois verificar a cada 2 segundos para feedback mais rápido
+      interval = setInterval(() => {
+        checkDownloadStatus();
+      }, 2000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [downloading]);
 
   const loadFolders = async () => {
     try {
@@ -123,22 +133,36 @@ export default function BaixarYoutube() {
       const response = await fetch('/api/downloadyoutube/status', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
           setDownloadStatus(data);
-          setDownloading(data.downloading);
-          
-          // Se download foi concluído, recarregar downloads recentes
+
+          // Se download foi concluído
           if (data.status === 'completed' && downloading) {
+            setDownloading(false);
             toast.success(`Download concluído: ${data.video_title}`);
             loadRecentDownloads();
             setUrl('');
             setVideoInfo(null);
             setUrlValid(null);
-          } else if (data.status === 'error' && downloading) {
+            setDownloadStatus(null);
+          }
+          // Se download deu erro
+          else if (data.status === 'error' && downloading) {
+            setDownloading(false);
             toast.error(`Erro no download: ${data.error}`);
+            setDownloadStatus(null);
+          }
+          // Se ainda está baixando ou fazendo upload
+          else if (data.downloading) {
+            setDownloading(true);
+          }
+          // Se não está mais baixando (idle)
+          else if (!data.downloading && data.status === 'idle') {
+            setDownloading(false);
+            setDownloadStatus(null);
           }
         }
       }
@@ -366,11 +390,13 @@ export default function BaixarYoutube() {
                   {downloadStatus.progress.toFixed(1)}%
                 </span>
               </div>
-              <div className="w-full bg-blue-200 rounded-full h-2">
+              <div className="w-full bg-blue-200 rounded-full h-3 overflow-hidden">
                 <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${downloadStatus.progress}%` }}
-                ></div>
+                  className="bg-gradient-to-r from-blue-500 to-blue-700 h-3 rounded-full transition-all duration-500 ease-out relative"
+                  style={{ width: `${Math.min(100, downloadStatus.progress)}%` }}
+                >
+                  <div className="absolute inset-0 bg-white/30 animate-pulse"></div>
+                </div>
               </div>
             </div>
 

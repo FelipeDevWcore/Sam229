@@ -145,18 +145,18 @@ const DashboardLayout: React.FC = () => {
     sidebarOpen ? 'translate-x-0' : '-translate-x-full'
   } fixed inset-y-0 left-0 z-50 w-72 shadow-xl transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:h-auto border-r border-gray-200 bg-transparent`}
 >
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full bg-white">
           {/* Logo */}
-          <div className="flex items-center px-4 border-b border-gray-200">
+          <div className="flex items-center justify-center px-4 py-6 border-b border-gray-200 bg-white">
             {!logoError ? (
               <img
-                src="./logo.png"
+                src="/logo.png"
                 alt="Logo"
-                className="w-30 h-30 mr-3 object-contain"
+                className="w-full h-20 object-contain"
                 onError={() => setLogoError(true)}
               />
             ) : (
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl flex items-center justify-center mr-3">
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl flex items-center justify-center">
                 <Play className="h-8 w-8 text-white" />
               </div>
             )}

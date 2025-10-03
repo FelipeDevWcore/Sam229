@@ -562,18 +562,23 @@ const ConversaoVideos: React.FC = () => {
 
                   {/* Progresso de Conversão */}
                   {converting[video.id] && (
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between text-sm mb-1">
-                        <span className="text-blue-700 font-medium">Convertendo...</span>
-                        <span className="text-blue-600">
-                          {conversionStatuses[video.id]?.progress || 0}%
+                    <div className="mb-4 bg-blue-50 rounded-lg p-3 border border-blue-200">
+                      <div className="flex items-center justify-between text-sm mb-2">
+                        <span className="text-blue-700 font-medium flex items-center">
+                          <Zap className="h-4 w-4 mr-1 animate-pulse" />
+                          Convertendo...
+                        </span>
+                        <span className="text-blue-600 font-semibold">
+                          {Math.round(conversionStatuses[video.id]?.progress || 0)}%
                         </span>
                       </div>
-                      <div className="w-full bg-blue-200 rounded-full h-2">
+                      <div className="w-full bg-blue-200 rounded-full h-3 overflow-hidden">
                         <div
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${conversionStatuses[video.id]?.progress || 0}%` }}
-                        ></div>
+                          className="bg-gradient-to-r from-blue-500 to-blue-700 h-3 rounded-full transition-all duration-500 ease-out relative"
+                          style={{ width: `${Math.min(100, conversionStatuses[video.id]?.progress || 0)}%` }}
+                        >
+                          <div className="absolute inset-0 bg-white/30 animate-pulse"></div>
+                        </div>
                       </div>
                     </div>
                   )}

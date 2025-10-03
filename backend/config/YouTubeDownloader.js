@@ -190,19 +190,36 @@ class YouTubeDownloader {
             const folderData = folderRows[0][0];
             const folderName = folderData.identificacao;
             const serverId = folderData.codigo_servidor || 1;
-            const totalSpace = parseFloat(folderData.espaco) || 0;
-            const usedSpace = parseFloat(folderData.espaco_usado) || 0;
+
+            // Buscar espaço do usuário (não da pasta)
+            const [userRows] = await db.execute(
+                `SELECT
+                    COALESCE(r.espaco, s.espaco) as total_space,
+                    COALESCE((
+                        SELECT SUM(tamanho_arquivo) / (1024 * 1024)
+                        FROM videos
+                        WHERE codigo_cliente = ?
+                    ), 0) as used_space
+                 FROM streamings s
+                 LEFT JOIN revendas r ON s.codigo_revenda = r.codigo
+                 WHERE s.codigo_cliente = ?
+                 LIMIT 1`,
+                [userId, userId]
+            );
+
+            const totalSpace = parseFloat(userRows[0]?.total_space) || 1000;
+            const usedSpace = parseFloat(userRows[0]?.used_space) || 0;
             const availableSpace = totalSpace - usedSpace;
 
-            console.log(`📊 Espaço - Total: ${totalSpace}MB, Usado: ${usedSpace}MB, Disponível: ${availableSpace}MB`);
+            console.log(`📊 Espaço do usuário - Total: ${totalSpace}MB, Usado: ${usedSpace}MB, Disponível: ${availableSpace}MB`);
             console.log(`📦 Tamanho estimado do vídeo: ${estimatedSizeMB}MB`);
 
             if (availableSpace < 100) {
-                throw new Error(`Espaço insuficiente. Disponível: ${Math.round(availableSpace)}MB, Necessário: ${estimatedSizeMB}MB.`);
+                throw new Error(`Espaço insuficiente no seu plano. Disponível: ${Math.round(availableSpace)}MB, Necessário: ${estimatedSizeMB}MB.`);
             }
 
             if (estimatedSizeMB > availableSpace) {
-                throw new Error(`Arquivo muito grande (${estimatedSizeMB}MB). Espaço disponível: ${Math.round(availableSpace)}MB.`);
+                throw new Error(`Arquivo muito grande (${estimatedSizeMB}MB). Espaço disponível no seu plano: ${Math.round(availableSpace)}MB.`);
             }
 
             const userLogin = await this.getUserLogin(userId);
