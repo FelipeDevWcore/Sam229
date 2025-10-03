@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Upload, Play, Trash2, FolderPlus, Video, Eye, EyeOff, RefreshCw, Edit2, Save, X, Maximize, Minimize, ExternalLink, Download, AlertCircle, CheckCircle, HardDrive, Folder, Settings } from 'lucide-react';
+import { ChevronLeft, Upload, Play, Trash2, FolderPlus, Video, Eye, EyeOff, RefreshCw, CreditCard as Edit2, Save, X, Maximize, Minimize, ExternalLink, Download, AlertCircle, CheckCircle, HardDrive, Folder, Settings } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
